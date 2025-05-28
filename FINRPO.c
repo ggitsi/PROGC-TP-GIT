@@ -11,7 +11,7 @@ typedef struct {
     char name[MAX_NAME_LENGTH];
     int ingredientsCount;
     char ingredients[5][MAX_NAME_LENGTH];
-    int quantities[5]; // gram
+    int quantities[5];
 } Recipe;
 
 typedef struct {
@@ -28,6 +28,7 @@ typedef struct {
 void initializeRecipes(Recipe recipes[]);
 void createMealPlan(MealPlan *plan, Recipe recipes[], int recipeCount);
 void displayMealPlan(MealPlan *plan, Recipe recipes[], int recipeCount);
+void displayRecipes(Recipe recipes[], int recipeCount);
 
 int main() {
     Recipe recipes[MAX_RECIPES];
@@ -41,13 +42,14 @@ int main() {
         printf("\n=== Menu ===\n");
         printf("1. Buat Meal Plan\n");
         printf("2. Lihat Meal Plan\n");
-        printf("3. Exit\n");
+        printf("3. Lihat Daftar Resep\n");
+        printf("0. Keluar\n");
         printf("Pilih menu: ");
         if (scanf("%d", &choice) != 1) {
-            while (getchar() != '\n'); // clear input buffer
-            choice = 0; // invalid input
+            while (getchar() != '\n');
+            choice = -1;
         } else {
-            while (getchar() != '\n'); // clear input buffer
+            while (getchar() != '\n');
         }
 
         switch (choice) {
@@ -58,16 +60,31 @@ int main() {
                 displayMealPlan(&plan, recipes, MAX_RECIPES);
                 break;
             case 3:
-                printf("Exit program...\n");
+                displayRecipes(recipes, MAX_RECIPES);
+                break;
+            case 0:
+                printf("Terima kasih telah menggunakan program ini.\n");
                 break;
             default:
                 printf("Pilihan tidak valid!\n");
         }
-    } while (choice != 3);
+    } while (choice != 0);
 
     return 0;
 }
 
+//display menu + resep
+void displayRecipes(Recipe recipes[], int recipeCount) {
+    printf("\nDaftar Resep:\n");
+    for (int i = 0; i < recipeCount; i++) {
+        printf("%d. %s\n", i + 1, recipes[i].name);
+        for (int j = 0; j < recipes[i].ingredientsCount; j++) {
+            printf("    - %s: %d gram\n", recipes[i].ingredients[j], recipes[i].quantities[j]);
+        }
+    }
+}
+
+//simpan resep
 void initializeRecipes(Recipe recipes[]) {
     strcpy(recipes[0].name, "Ayam Rica-Rica");
     recipes[0].ingredientsCount = 5;
