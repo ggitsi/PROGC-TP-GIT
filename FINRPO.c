@@ -16,9 +16,7 @@ typedef struct {
 
 typedef struct {
     char name[MAX_NAME_LENGTH];
-    int ingredientsCount;
-    char ingredients[5][MAX_NAME_LENGTH];
-    int quantities[5];
+    Ingredient ingredients[5];
 } Recipe;
 
 typedef struct {
@@ -28,11 +26,6 @@ typedef struct {
 } MealPlanEntry;
 
 typedef struct {
-    MealPlanEntry mealPlan[MAX_DAYS * MAX_MENUS_PER_DAY];
-    int mealPlanSize;
-} MealPlan;
-
-typedef struct {
     Ingredient storage[MAX_INGREDIENTS];
     int storageCount;
     int budget;
@@ -40,49 +33,69 @@ typedef struct {
     int mealPlanSize;
 } Pantry;
 
-
+void initializePantry(Pantry *pantry);
 void initializeRecipes(Recipe recipes[]);
-void createMealPlan(MealPlan *plan, Recipe recipes[], int recipeCount);
-void displayMealPlan(MealPlan *plan, Recipe recipes[], int recipeCount);
+void displayIngredients(Pantry *pantry);
 void displayRecipes(Recipe recipes[], int recipeCount);
+void displayRecipeDetail(Recipe *recipe);
 int findIngredientIndex(Pantry *pantry, const char *name);
+int checkMealPlanCreated(Pantry *pantry);
+void addBudget(Pantry *pantry);
+void buyIngredientsMenu(Pantry *pantry, Recipe recipes[], int recipeCount);
 void buySingleIngredient(Pantry *pantry, int ingredientIndex);
 void buyPackageIngredients(Pantry *pantry, Recipe recipes[], int recipeCount);
+void createMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount);
+void updateStorageFromMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount);
+void editMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount);
+void displayMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount);
+void clearInputBuffer();
 
 int main() {
+    Pantry pantry;
     Recipe recipes[MAX_RECIPES];
-    MealPlan plan;
-    plan.mealPlanSize = 0;
 
+    initializePantry(&pantry);
     initializeRecipes(recipes);
 
     int choice;
     do {
         printf("\n=== Menu ===\n");
-        printf("1. Buat Meal Plan\n");
-        printf("2. Lihat Meal Plan\n");
-        printf("3. Lihat Daftar Resep\n");
-        printf("0. Keluar\n");
+        printf("1. Lihat Ingredient\n");
+        printf("2. Resep\n");
+        printf("3. Beli Bahan Makanan\n");
+        printf("4. Add Budget\n");
+        printf("5. Buat Meal Plan\n");
+        printf("6. Edit Meal Plan\n");
+        printf("7. Lihat Meal Plan\n");
+        printf("8. Exit\n");
         printf("Pilih menu: ");
-        if (scanf("%d", &choice) != 1) {
-            while (getchar() != '\n');
-            choice = -1;
-        } else {
-            while (getchar() != '\n');
-        }
+        scanf("%d", &choice);
+        clearInputBuffer();
 
         switch (choice) {
             case 1:
-                createMealPlan(&plan, recipes, MAX_RECIPES);
+                displayIngredients(&pantry);
                 break;
             case 2:
-                displayMealPlan(&plan, recipes, MAX_RECIPES);
-                break;
-            case 3:
                 displayRecipes(recipes, MAX_RECIPES);
                 break;
-            case 0:
-                printf("Terima kasih telah menggunakan program ini.\n");
+            case 3:
+                buyIngredientsMenu(&pantry, recipes, MAX_RECIPES);
+                break;
+            case 4:
+                addBudget(&pantry);
+                break;
+            case 5:
+                createMealPlan(&pantry, recipes, MAX_RECIPES);
+                break;
+            case 6:
+                editMealPlan(&pantry, recipes, MAX_RECIPES);
+                break;
+            case 7:
+                displayMealPlan(&pantry, recipes, MAX_RECIPES);
+                break;
+            case 8:
+                printf("Exiting program...\n");
                 break;
             default:
                 printf("Pilihan tidak valid!\n");
@@ -92,77 +105,100 @@ int main() {
     return 0;
 }
 
+void clearInputBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF) {}
+}
+
+void initializePantry(Pantry *pantry) {
+    pantry->storageCount = 5;
+    pantry->budget = 0;  // set awal menjadi 0
+
+    // Initial ingredients with estimated quantities and price per gram
+    strcpy(pantry->storage[0].name, "Daging Ayam");
+    pantry->storage[0].quantity = 500;
+    pantry->storage[0].pricePerGram = 150; // Rp 150 per gram
+
+    strcpy(pantry->storage[1].name, "Kecap Manis");
+    pantry->storage[1].quantity = 200;
+    pantry->storage[1].pricePerGram = 120;
+
+    strcpy(pantry->storage[2].name, "Bawang Merah");
+    pantry->storage[2].quantity = 100;
+    pantry->storage[2].pricePerGram = 100;
+
+    strcpy(pantry->storage[3].name, "Bawang Putih");
+    pantry->storage[3].quantity = 100;
+    pantry->storage[3].pricePerGram = 100;
+
+    strcpy(pantry->storage[4].name, "Cabai Keriting");
+    pantry->storage[4].quantity = 100;
+    pantry->storage[4].pricePerGram = 120;
+
+    pantry->mealPlanSize = 0;
+}
+
 //display menu + resep
 void displayRecipes(Recipe recipes[], int recipeCount) {
-    printf("\nDaftar Resep:\n");
+    printf("\nAvailable Recipes:\n");
     for (int i = 0; i < recipeCount; i++) {
         printf("%d. %s\n", i + 1, recipes[i].name);
-        for (int j = 0; j < recipes[i].ingredientsCount; j++) {
-            printf("    - %s: %d gram\n", recipes[i].ingredients[j], recipes[i].quantities[j]);
+        // Tampilkan bahan resep saat lihat resep
+        printf("  Bahan:\n");
+        for(int j=0;j<5;j++){
+            if(strlen(recipes[i].ingredients[j].name) > 0){
+                printf("   - %s: %d gr\n", recipes[i].ingredients[j].name, recipes[i].ingredients[j].quantity);
+            }
         }
+        printf("\n");
+    }
+}
+
+void addBudget(Pantry *pantry) {
+    int additional;
+    printf("Tambah budget (Rp): ");
+    scanf("%d", &additional);
+    clearInputBuffer();
+    if (additional > 0) {
+        pantry->budget += additional;
+        printf("Budget berhasil ditambah, current budget: Rp %d\n", pantry->budget);
+    } else {
+        printf("Nilai tidak valid!\n");
     }
 }
 
 //simpan resep
 void initializeRecipes(Recipe recipes[]) {
-    strcpy(recipes[0].name, "Ayam Rica-Rica");
-    recipes[0].ingredientsCount = 5;
-    strcpy(recipes[0].ingredients[0], "Daging Ayam"); recipes[0].quantities[0] = 150;
-    strcpy(recipes[0].ingredients[1], "Cabai Merah Keriting"); recipes[0].quantities[1] = 20;
-    strcpy(recipes[0].ingredients[2], "Bawang Merah"); recipes[0].quantities[2] = 15;
-    strcpy(recipes[0].ingredients[3], "Bawang Putih"); recipes[0].quantities[3] = 10;
-    strcpy(recipes[0].ingredients[4], "Tomat"); recipes[0].quantities[4] = 25;
+   strcpy(recipes[0].name, "Ayam Rica-Rica");
+    Ingredient r1[] = {{"Daging Ayam", 150,0}, {"Cabai Merah Keriting", 20,0}, {"Bawang Merah", 15,0}, {"Bawang Putih", 10,0}, {"Tomat", 25,0}};
+    memcpy(recipes[0].ingredients, r1, sizeof(r1));
 
     strcpy(recipes[1].name, "Ayam Bumbu Kuning");
-    recipes[1].ingredientsCount = 5;
-    strcpy(recipes[1].ingredients[0], "Daging Ayam"); recipes[1].quantities[0] = 150;
-    strcpy(recipes[1].ingredients[1], "Kunyit"); recipes[1].quantities[1] = 5;
-    strcpy(recipes[1].ingredients[2], "Bawang Merah"); recipes[1].quantities[2] = 15;
-    strcpy(recipes[1].ingredients[3], "Bawang Putih"); recipes[1].quantities[3] = 10;
-    strcpy(recipes[1].ingredients[4], "Serai"); recipes[1].quantities[4] = 5;
+    Ingredient r2[] = {{"Daging Ayam", 150,0}, {"Kunyit", 5,0}, {"Bawang Merah", 15,0}, {"Bawang Putih", 10,0}, {"Serai", 5,0}};
+    memcpy(recipes[1].ingredients, r2, sizeof(r2));
 
     strcpy(recipes[2].name, "Ayam Suwir Balado");
-    recipes[2].ingredientsCount = 5;
-    strcpy(recipes[2].ingredients[0], "Ayam Suwir"); recipes[2].quantities[0] = 150;
-    strcpy(recipes[2].ingredients[1], "Cabai Merah"); recipes[2].quantities[1] = 25;
-    strcpy(recipes[2].ingredients[2], "Bawang Merah"); recipes[2].quantities[2] = 15;
-    strcpy(recipes[2].ingredients[3], "Bawang Putih"); recipes[2].quantities[3] = 10;
-    strcpy(recipes[2].ingredients[4], "Tomat"); recipes[2].quantities[4] = 20;
+    Ingredient r3[] = {{"Ayam Suwir", 150,0}, {"Cabai Merah", 25,0}, {"Bawang Merah", 15,0}, {"Bawang Putih", 10,0}, {"Tomat", 20,0}};
+    memcpy(recipes[2].ingredients, r3, sizeof(r3));
 
     strcpy(recipes[3].name, "Ayam Kecap Pedas");
-    recipes[3].ingredientsCount = 5;
-    strcpy(recipes[3].ingredients[0], "Daging Ayam"); recipes[3].quantities[0] = 150;
-    strcpy(recipes[3].ingredients[1], "Kecap Manis"); recipes[3].quantities[1] = 15;
-    strcpy(recipes[3].ingredients[2], "Cabai Merah Keriting"); recipes[3].quantities[2] = 15;
-    strcpy(recipes[3].ingredients[3], "Bawang Merah"); recipes[3].quantities[3] = 15;
-    strcpy(recipes[3].ingredients[4], "Bawang Putih"); recipes[3].quantities[4] = 10;
+    Ingredient r4[] = {{"Daging Ayam", 150,0}, {"Kecap Manis", 15,0}, {"Cabai Merah Keriting", 15,0}, {"Bawang Merah", 15,0}, {"Bawang Putih", 10,0}};
+    memcpy(recipes[3].ingredients, r4, sizeof(r4));
 
     strcpy(recipes[4].name, "Ayam Cabe Ijo");
-    recipes[4].ingredientsCount = 5;
-    strcpy(recipes[4].ingredients[0], "Daging Ayam"); recipes[4].quantities[0] = 150;
-    strcpy(recipes[4].ingredients[1], "Cabai Hijau Besar"); recipes[4].quantities[1] = 20;
-    strcpy(recipes[4].ingredients[2], "Bawang Merah"); recipes[4].quantities[2] = 15;
-    strcpy(recipes[4].ingredients[3], "Bawang Putih"); recipes[4].quantities[3] = 10;
-    strcpy(recipes[4].ingredients[4], "Tomat Hijau"); recipes[4].quantities[4] = 20;
+    Ingredient r5[] = {{"Daging Ayam", 150,0}, {"Cabai Hijau Besar", 20,0}, {"Bawang Merah", 15,0}, {"Bawang Putih", 10,0}, {"Tomat Hijau", 20,0}};
+    memcpy(recipes[4].ingredients, r5, sizeof(r5));
 
     strcpy(recipes[5].name, "Semur Ayam");
-    recipes[5].ingredientsCount = 5;
-    strcpy(recipes[5].ingredients[0], "Daging Ayam"); recipes[5].quantities[0] = 150;
-    strcpy(recipes[5].ingredients[1], "Kecap Manis"); recipes[5].quantities[1] = 20;
-    strcpy(recipes[5].ingredients[2], "Bawang Merah"); recipes[5].quantities[2] = 15;
-    strcpy(recipes[5].ingredients[3], "Bawang Putih"); recipes[5].quantities[3] = 10;
-    strcpy(recipes[5].ingredients[4], "Tomat"); recipes[5].quantities[4] = 20;
+    Ingredient r6[] = {{"Daging Ayam", 150,0}, {"Kecap Manis", 20,0}, {"Bawang Merah", 15,0}, {"Bawang Putih", 10,0}, {"Tomat", 20,0}};
+    memcpy(recipes[5].ingredients, r6, sizeof(r6));
 
     strcpy(recipes[6].name, "Ayam Goreng Lengkuas");
-    recipes[6].ingredientsCount = 5;
-    strcpy(recipes[6].ingredients[0], "Daging Ayam"); recipes[6].quantities[0] = 150;
-    strcpy(recipes[6].ingredients[1], "Lengkuas (Parut)"); recipes[6].quantities[1] = 15;
-    strcpy(recipes[6].ingredients[2], "Bawang Putih"); recipes[6].quantities[2] = 10;
-    strcpy(recipes[6].ingredients[3], "Bawang Merah"); recipes[6].quantities[3] = 10;
-    strcpy(recipes[6].ingredients[4], "Minyak Goreng"); recipes[6].quantities[4] = 300;
+    Ingredient r7[] = {{"Daging Ayam", 150,0}, {"Lengkuas (Parut)", 15,0}, {"Bawang Putih", 10,0}, {"Bawang Merah",10,0}, {"Minyak Goreng", 300,0}};
+    memcpy(recipes[6].ingredients, r7, sizeof(r7));
 }
 
-void createMealPlan(MealPlan *plan, Recipe recipes[], int recipeCount) {
+void createMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount) {
     int days;
     printf("Masukkan jumlah hari untuk meal plan (maks %d): ", MAX_DAYS);
     scanf("%d", &days);
@@ -205,29 +241,67 @@ void createMealPlan(MealPlan *plan, Recipe recipes[], int recipeCount) {
                 printf("Meal plan sudah penuh!\n");
                 return;
             }
-            plan->mealPlan[totalEntries].day = d + 1;
-            plan->mealPlan[totalEntries].recipeIndex = selRecipe - 1;
-            plan->mealPlan[totalEntries].servings = porsi;
+            pantry->mealPlan[totalEntries].day = d + 1;
+            pantry->mealPlan[totalEntries].recipeIndex = selRecipe - 1;
+            pantry->mealPlan[totalEntries].servings = porsi;
             totalEntries++;
         }
     }
-    plan->mealPlanSize = totalEntries;
-    printf("Meal plan berhasil dibuat.\n");
+    pantry->mealPlanSize = totalEntries;
+    updateStorageFromMealPlan(pantry, recipes, recipeCount);
 }
 
-void displayMealPlan(MealPlan *plan, Recipe recipes[], int recipeCount) {
-    if (plan->mealPlanSize == 0) {
+void displayMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount) {
+    if (!checkMealPlanCreated(pantry)) {
         printf("Meal plan belum dibuat.\n");
         return;
     }
+
+    // Hitung kebutuhan bahan meal plan
+    int needed[MAX_INGREDIENTS] = {0};
+    for (int i = 0; i < pantry->mealPlanSize; i++) {
+        MealPlanEntry *entry = &pantry->mealPlan[i];
+        Recipe *rec = &recipes[entry->recipeIndex];
+        for (int ing = 0; ing < 5; ing++) {
+            if (strlen(rec->ingredients[ing].name) == 0) continue;
+            int idx = findIngredientIndex(pantry, rec->ingredients[ing].name);
+            if (idx == -1) {
+                // Bahan baru jika belum ada di storage
+                strcpy(pantry->storage[pantry->storageCount].name, rec->ingredients[ing].name);
+                pantry->storage[pantry->storageCount].quantity = 0;
+                pantry->storage[pantry->storageCount].pricePerGram = 100;
+                idx = pantry->storageCount;
+                pantry->storageCount++;
+            }
+            needed[idx] += rec->ingredients[ing].quantity * entry->servings;
+        }
+    }
+
+    // Cek apakah bahan cukup
+    int enough = 1;
+    for (int i = 0; i < pantry->storageCount; i++) {
+        if (needed[i] > pantry->storage[i].quantity) {
+            enough = 0;
+            break;
+        }
+    }
+
     printf("\nMeal Plan:\n");
     int currentDay = -1;
-    for (int i = 0; i < plan->mealPlanSize; i++) {
-        if (plan->mealPlan[i].day != currentDay) {
-            currentDay = plan->mealPlan[i].day;
+    for (int i = 0; i < pantry->mealPlanSize; i++) {
+        if (pantry->mealPlan[i].day != currentDay) {
+            currentDay = pantry->mealPlan[i].day;
             printf("Hari %d:\n", currentDay);
         }
-        printf("  - %s: %d porsi\n", recipes[plan->mealPlan[i].recipeIndex].name, plan->mealPlan[i].servings);
+        printf("  - %s: %d porsi\n",
+               recipes[pantry->mealPlan[i].recipeIndex].name,
+               pantry->mealPlan[i].servings);
+    }
+
+    if (!enough) {
+        printf("\nCatatan: Bahan untuk meal plan ini masih kurang, silakan beli bahan tambahan.\n");
+    } else {
+        printf("\nBahan untuk meal plan ini cukup di storage.\n");
     }
 }
 
@@ -324,17 +398,19 @@ void buyPackageIngredients(Pantry *pantry, Recipe recipes[], int recipeCount) {
     for (int i = 0; i < pantry->mealPlanSize; i++) {
         MealPlanEntry *entry = &pantry->mealPlan[i];
         Recipe *rec = &recipes[entry->recipeIndex];
-        for (int ing = 0; ing < rec->ingredientsCount; ing++) {
-    int idx = findIngredientIndex(pantry, rec->ingredients[ing]);
-    if (idx == -1) {
-        strcpy(pantry->storage[pantry->storageCount].name, rec->ingredients[ing]);
-        pantry->storage[pantry->storageCount].quantity = 0;
-        pantry->storage[pantry->storageCount].pricePerGram = 100;
-        idx = pantry->storageCount;
-        pantry->storageCount++;
-    }
-    needed[idx] += rec->quantities[ing] * entry->servings;
-}
+        for (int ing = 0; ing < 5; ing++) {
+            if(strlen(rec->ingredients[ing].name) == 0)
+                continue;
+            int idx = findIngredientIndex(pantry, rec->ingredients[ing].name);
+            if (idx == -1) {
+                strcpy(pantry->storage[pantry->storageCount].name, rec->ingredients[ing].name);
+                pantry->storage[pantry->storageCount].quantity = 0;
+                pantry->storage[pantry->storageCount].pricePerGram = 100; // default harga
+                idx = pantry->storageCount;
+                pantry->storageCount++;
+            }
+            needed[idx] += rec->ingredients[ing].quantity * entry->servings;
+        }
     }
 
     for (int i = 0; i < pantry->storageCount; i++) {
@@ -367,4 +443,113 @@ void buyPackageIngredients(Pantry *pantry, Recipe recipes[], int recipeCount) {
     }
     pantry->budget -= totalCost;
     printf("Pembelian paket bahan berhasil!\nSisa budget: Rp %d\n", pantry->budget);
+}
+
+
+void updateStorageFromMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount) {
+    int needed[MAX_INGREDIENTS] = {0};
+    for (int i = 0; i < pantry->mealPlanSize; i++) {
+        MealPlanEntry *entry = &pantry->mealPlan[i];
+        Recipe *rec = &recipes[entry->recipeIndex];
+        for (int ing = 0; ing < 5; ing++) {
+            if (strlen(rec->ingredients[ing].name) == 0) continue;
+            int idx = findIngredientIndex(pantry, rec->ingredients[ing].name);
+            if (idx == -1) {
+                strcpy(pantry->storage[pantry->storageCount].name, rec->ingredients[ing].name);
+                pantry->storage[pantry->storageCount].quantity = 0;
+                pantry->storage[pantry->storageCount].pricePerGram = 100;
+                idx = pantry->storageCount;
+                pantry->storageCount++;
+            }
+            needed[idx] += rec->ingredients[ing].quantity * entry->servings;
+        }
+    }
+
+    int enough = 1;
+    printf("\nCek kecukupan bahan untuk meal plan...\n");
+    for (int i = 0; i < pantry->storageCount; i++) {
+        if (needed[i] > pantry->storage[i].quantity) {
+            printf("- Bahan %s kurang. Butuh %d gr, tersedia %d gr\n",
+                   pantry->storage[i].name, needed[i], pantry->storage[i].quantity);
+            enough = 0;
+        }
+    }
+
+    if (enough) {
+        printf("Bahan cukup untuk meal plan, stok dikurangi sesuai resep.\n");
+        for (int i = 0; i < pantry->storageCount; i++) {
+            pantry->storage[i].quantity -= needed[i];
+        }
+    } else {
+        printf("Bahan kurang, mohon beli bahan terlebih dahulu.\n");
+    }
+}
+
+void editMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount) {
+    if (!checkMealPlanCreated(pantry)) {
+        printf("Meal plan belum dibuat. Silakan buat meal plan terlebih dahulu.\n");
+        return;
+    }
+
+    printf("Edit Meal Plan\n");
+    printf("Meal plan saat ini:\n");
+    for (int i = 0; i < pantry->mealPlanSize; i++) {
+        printf("%d. Hari %d - %s - %d porsi\n", i + 1,
+               pantry->mealPlan[i].day,
+               recipes[pantry->mealPlan[i].recipeIndex].name,
+               pantry->mealPlan[i].servings);
+    }
+
+    int editIndex;
+    printf("Pilih nomor menu yang ingin diubah (0 untuk batal): ");
+    scanf("%d", &editIndex);
+    clearInputBuffer();
+    if (editIndex < 1 || editIndex > pantry->mealPlanSize) {
+        printf("Pilihan invalid atau batal.\n");
+        return;
+    }
+    editIndex -= 1;
+
+    int newDay, newRecipe, newServings;
+    printf("Pindahkan ke hari berapa (1-%d): ", MAX_DAYS);
+    scanf("%d", &newDay);
+    clearInputBuffer();
+    if (newDay < 1 || newDay > MAX_DAYS) {
+        printf("Hari tidak valid.\n");
+        return;
+    }
+    printf("Daftar resep:\n");
+    for (int i = 0; i < recipeCount; i++) {
+        printf("%d. %s\n", i + 1, recipes[i].name);
+    }
+    printf("Pilih resep baru: ");
+    scanf("%d", &newRecipe);
+    clearInputBuffer();
+    if (newRecipe < 1 || newRecipe > recipeCount) {
+        printf("Resep tidak valid.\n");
+        return;
+    }
+    printf("Masukkan jumlah porsi baru: ");
+    scanf("%d", &newServings);
+    clearInputBuffer();
+    if (newServings < 1) {
+        printf("Jumlah porsi tidak valid.\n");
+        return;
+    }
+
+    MealPlanEntry *oldEntry = &pantry->mealPlan[editIndex];
+    Recipe *oldRec = &recipes[oldEntry->recipeIndex];
+    for (int ing = 0; ing < 5; ing++) {
+        if (strlen(oldRec->ingredients[ing].name) == 0) continue;
+        int idx = findIngredientIndex(pantry, oldRec->ingredients[ing].name);
+        if (idx != -1) {
+            pantry->storage[idx].quantity += oldRec->ingredients[ing].quantity * oldEntry->servings;
+        }
+    }
+
+    pantry->mealPlan[editIndex].day = newDay;
+    pantry->mealPlan[editIndex].recipeIndex = newRecipe - 1;
+    pantry->mealPlan[editIndex].servings = newServings;
+
+    updateStorageFromMealPlan(pantry, recipes, recipeCount);
 }
