@@ -1,41 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+//library untuk seluruh fungsi yang ada di program meal plan
 #include "finproFunction.h"
-
-#define MAX_RECIPES 7
-#define MAX_NAME_LENGTH 50
-#define MAX_DAYS 7
-#define MAX_MENUS_PER_DAY 5
-#define MAX_INGREDIENTS 20
-
-//menyimpan nama, jumlah, dan harga bahan makanan
-typedef struct {
-    char name[MAX_NAME_LENGTH];
-    int quantity;   
-    int pricePerGram; 
-} Ingredient;
-
-//menyimpan bahan makanan yang diperlukan (resep) per menu
-typedef struct {
-    char name[MAX_NAME_LENGTH];
-    Ingredient ingredients[5];
-} Recipe;
-
-//menyimpan meal plan : hari ke berapa, menu, dan porsi saji
-typedef struct {
-    int day;
-    int recipeIndex;
-    int servings;
-} MealPlanEntry;
-
-typedef struct {
-    Ingredient storage[MAX_INGREDIENTS];
-    int storageCount;
-    int budget;
-    MealPlanEntry mealPlan[MAX_DAYS * MAX_MENUS_PER_DAY];
-    int mealPlanSize;
-} Pantry;
 
 int main() {
     Pantry pantry;
@@ -45,6 +9,10 @@ int main() {
     initializeRecipes(recipes);
 
     int choice;
+
+    printf("Selamat datang di program WEEKLY MEALPLAN\n");
+
+    //menu untuk program meal plan
     do {
         printf("\n=== Menu ===\n");
         printf("1. Lihat Bahan Makanan\n");

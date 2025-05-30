@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #define MAX_RECIPES 7
 #define MAX_NAME_LENGTH 50
 #define MAX_DAYS 7
@@ -24,6 +28,7 @@ typedef struct {
     int servings;
 } MealPlanEntry;
 
+//menyimpan sistem storage
 typedef struct {
     Ingredient storage[MAX_INGREDIENTS];
     int storageCount;
@@ -32,34 +37,68 @@ typedef struct {
     int mealPlanSize;
 } Pantry;
 
+//menghapus sisa karakter dari input sebelumnya
 void clearInputBuffer() {
     int c;
     while ((c = getchar()) != '\n' && c != EOF) {}
 }
 
+//inisialisasi storage awal bahan makanan
 void initializePantry(Pantry *pantry) {
-    pantry->storageCount = 5;
+    pantry->storageCount = 13;
     pantry->budget = 0; 
 
     strcpy(pantry->storage[0].name, "Daging Ayam");
     pantry->storage[0].quantity = 500;
-    pantry->storage[0].pricePerGram = 150;
+    pantry->storage[0].pricePerGram = 300;
 
     strcpy(pantry->storage[1].name, "Kecap Manis");
-    pantry->storage[1].quantity = 200;
-    pantry->storage[1].pricePerGram = 120;
+    pantry->storage[1].quantity = 100;
+    pantry->storage[1].pricePerGram = 25;
 
     strcpy(pantry->storage[2].name, "Bawang Merah");
     pantry->storage[2].quantity = 100;
-    pantry->storage[2].pricePerGram = 100;
+    pantry->storage[2].pricePerGram = 50;
 
     strcpy(pantry->storage[3].name, "Bawang Putih");
     pantry->storage[3].quantity = 100;
-    pantry->storage[3].pricePerGram = 100;
+    pantry->storage[3].pricePerGram = 50;
 
-    strcpy(pantry->storage[4].name, "Cabai Keriting");
+    strcpy(pantry->storage[4].name, "Cabai Merah");
     pantry->storage[4].quantity = 100;
-    pantry->storage[4].pricePerGram = 120;
+    pantry->storage[4].pricePerGram = 44;
+
+    strcpy(pantry->storage[5].name, "Cabai Merah Keriting");
+    pantry->storage[5].quantity = 100;
+    pantry->storage[5].pricePerGram = 80;
+
+    strcpy(pantry->storage[6].name, "Tomat");
+    pantry->storage[6].quantity = 300;
+    pantry->storage[6].pricePerGram = 10;
+
+    strcpy(pantry->storage[7].name, "Serai");
+    pantry->storage[7].quantity = 0;
+    pantry->storage[7].pricePerGram = 15;
+
+    strcpy(pantry->storage[8].name, "Ayam Suwir");
+    pantry->storage[8].quantity = 0;
+    pantry->storage[8].pricePerGram = 200;
+
+    strcpy(pantry->storage[9].name, "Cabai Hijau Besar");
+    pantry->storage[9].quantity = 0;
+    pantry->storage[9].pricePerGram = 150;
+
+    strcpy(pantry->storage[10].name, "Tomat Hijau");
+    pantry->storage[10].quantity = 0;
+    pantry->storage[10].pricePerGram = 25;
+
+    strcpy(pantry->storage[11].name, "Minyak Goreng");
+    pantry->storage[11].quantity = 100;
+    pantry->storage[11].pricePerGram = 10;
+
+    strcpy(pantry->storage[12].name, "Lengkuas");
+    pantry->storage[12].quantity = 0;
+    pantry->storage[12].pricePerGram = 15;
 
     pantry->mealPlanSize = 0;
 }
@@ -69,7 +108,6 @@ void displayRecipes(Recipe recipes[], int recipeCount) {
     printf("\nAvailable Recipes:\n");
     for (int i = 0; i < recipeCount; i++) {
         printf("%d. %s\n", i + 1, recipes[i].name);
-        // Tampilkan bahan resep saat lihat resep
         printf("  Bahan:\n");
         for(int j=0;j<5;j++){
             if(strlen(recipes[i].ingredients[j].name) > 0){
@@ -80,6 +118,7 @@ void displayRecipes(Recipe recipes[], int recipeCount) {
     }
 }
 
+//menambahkan budget untuk beli bahan makanan
 void addBudget(Pantry *pantry) {
     int additional;
     printf("Tambah budget (Rp): ");
@@ -93,7 +132,7 @@ void addBudget(Pantry *pantry) {
     }
 }
 
-//simpan resep
+//simpan resep untuk setiap menu
 void initializeRecipes(Recipe recipes[]) {
    strcpy(recipes[0].name, "Ayam Rica-Rica");
     Ingredient r1[] = {{"Daging Ayam", 150,0}, {"Cabai Merah Keriting", 20,0}, {"Bawang Merah", 15,0}, {"Bawang Putih", 10,0}, {"Tomat", 25,0}};
@@ -120,10 +159,11 @@ void initializeRecipes(Recipe recipes[]) {
     memcpy(recipes[5].ingredients, r6, sizeof(r6));
 
     strcpy(recipes[6].name, "Ayam Goreng Lengkuas");
-    Ingredient r7[] = {{"Daging Ayam", 150,0}, {"Lengkuas (Parut)", 15,0}, {"Bawang Putih", 10,0}, {"Bawang Merah",10,0}, {"Minyak Goreng", 300,0}};
+    Ingredient r7[] = {{"Daging Ayam", 150,0}, {"Lengkuas", 15,0}, {"Bawang Putih", 10,0}, {"Bawang Merah",10,0}, {"Minyak Goreng", 300,0}};
     memcpy(recipes[6].ingredients, r7, sizeof(r7));
 }
 
+//menampilkan seluruh bahan makanan yang ada di storage
 void displayIngredients(Pantry *pantry) {
     printf("\nIngredients in storage:\n");
     for (int i = 0; i < pantry->storageCount; i++) {
@@ -131,6 +171,7 @@ void displayIngredients(Pantry *pantry) {
     }
 }
 
+//mengalokasikan index untuk setiap bahan makanan
 int findIngredientIndex(Pantry *pantry, const char *name) {
     for (int i = 0; i < pantry->storageCount; i++) {
         if (strcmp(pantry->storage[i].name, name) == 0) {
@@ -140,10 +181,12 @@ int findIngredientIndex(Pantry *pantry, const char *name) {
     return -1;
 }
 
+//memeriksa adanya mealplan
 int checkMealPlanCreated(Pantry *pantry) {
     return pantry->mealPlanSize > 0;
 }
 
+//menyimpan bahan makanan yang dibutuhkan untuk mealplan dan memeriksa kecukupannya
 void updateStorageFromMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount) {
     int needed[MAX_INGREDIENTS] = {0};
     for (int i = 0; i < pantry->mealPlanSize; i++) {
@@ -183,6 +226,7 @@ void updateStorageFromMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount
     }
 }
 
+//membuat meal plan
 void createMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount) {
     int days;
     printf("Masukkan jumlah hari untuk meal plan (maks %d): ", MAX_DAYS);
@@ -236,6 +280,7 @@ void createMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount) {
     updateStorageFromMealPlan(pantry, recipes, recipeCount);
 }
 
+//menampilkan mealplan saat ini
 void displayMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount) {
     if (!checkMealPlanCreated(pantry)) {
         printf("Meal plan belum dibuat.\n");
@@ -290,7 +335,7 @@ void displayMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount) {
     }
 }
 
-// fungsi beli bahan satuan
+// membeli bahan satuan (per gram)
 void buySingleIngredient(Pantry *pantry, int ingredientIndex) {
     printf("Masukkan jumlah gram yang ingin dibeli untuk %s: ", pantry->storage[ingredientIndex].name);
     int qty;
@@ -311,7 +356,7 @@ void buySingleIngredient(Pantry *pantry, int ingredientIndex) {
            qty, pantry->storage[ingredientIndex].name, pantry->budget);
 }
 
-//fungsi beli bahan yang kurang (Paketan)
+//membeli bahan yang kurang dari mealplan (Paketan)
 void buyPackageIngredients(Pantry *pantry, Recipe recipes[], int recipeCount) {
     int needed[MAX_INGREDIENTS] = {0};
     int have[MAX_INGREDIENTS] = {0};
@@ -410,7 +455,7 @@ void buyIngredientsMenu(Pantry *pantry, Recipe recipes[], int recipeCount) {
     }
 }
 
-
+//menyunting meal plan saat ini
 void editMealPlan(Pantry *pantry, Recipe recipes[], int recipeCount) {
     if (!checkMealPlanCreated(pantry)) {
         printf("Meal plan belum dibuat. Silakan buat meal plan terlebih dahulu.\n");
